@@ -1,16 +1,10 @@
 'use strict';
-// Парсер Jira/Confluence wiki markup -> HTML.
-// В основе — markupParser из denco.confluence-markup (MIT, (c) Denis Baumgärtner),
-// адаптирован для корректного резолва локальных ресурсов в webview на remote/WSL
-// (webview.asWebviewUri вместо хардкода authority) + правки Jira-специфики
-// (вложения [^file], форс-жирный {*}).
 Object.defineProperty(exports, '__esModule', { value: true });
 exports.parseMarkup = parseMarkup;
 
 const vscode = require('vscode');
 const path = require('path');
 
-// Устанавливается на каждый вызов parseMarkup: нужен для asWebviewUri.
 let currentWebview = null;
 
 function escapeHtml(text) {
@@ -21,7 +15,6 @@ function escapeHtml(text) {
         .replace(/"/g, '&quot;');
 }
 
-// Абсолютный/относительный локальный путь -> webview-URI; внешние ссылки — как есть.
 function resolveResource(searchUri, link) {
     if (/^(https?|ftps?):\/\//i.test(link)) {
         return link;
@@ -52,7 +45,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
             continue;
         }
         if (!codeTagFlag) {
-            // Форс-жирный/курсив Jira: {*}text{*} -> *text*, {+}..{+} и т.п.
             tag = tag.replace(/\{([*+])\}/g, '$1');
 
             tag = tag.replace(/h(\d+)\.\s([^\r?\n]+)/g, '<h$1>$2</h$1>');
@@ -66,7 +58,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
             tag = tag.replace(/\{quote\}(.*)\{quote\}/g, '<blockquote><p>$1</p></blockquote>');
             tag = tag.replace(/\\\\/gi, '<br>');
 
-            // Вложения Jira: [^имя-файла] -> ссылка, открывающая файл в ОС.
             const attach_re = /\[\^([^\]]+)\]/g;
             if (tag.match(attach_re)) {
                 tag = tag.replace(attach_re, function (m0, fname) {
@@ -80,7 +71,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 html_tag = true;
             }
 
-            // Ссылки: [text|url] и [url]
             const re_href = /\[([^||\]]*)\|?([^[||]*)?\]/g;
             if (tag.match(re_href)) {
                 tag = tag.replace(re_href, function (m0, m1, m2) {
@@ -98,7 +88,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 html_tag = true;
             }
 
-            // Картинки: !file! и !file|width=..,height=..!
             const img_re = /!([^|]*)\|?(.*)!/;
             const img_match = tag.match(img_re);
             if (img_match) {
@@ -112,7 +101,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 html_tag = true;
             }
 
-            // Таблицы
             const tab_th_re = /\s*[^{]*\|{2}[^}]*$/gi;
             const tab_td_re = /\s*[^{]*\|[^}]*$/gi;
             if (tag.match(tab_th_re) || tag.match(tab_td_re)) {
@@ -142,11 +130,9 @@ function parseMarkup(sourceUri, sourceText, webview) {
             }
         }
 
-        // Однострочные {code}/{noformat}
         tag = tag.replace(/\{(noformat|code)[^}]*\}(.*)\{(noformat|code)\}/, function (m0, m1, m2) {
             return `<div class="code-block"><pre><code>${m2.replace(/</gi, '&lt;')}</code></pre></div>`;
         });
-        // Многострочные {code}/{noformat}
         const code_re = /\{(noformat|code)([^}]*)\}/;
         const code_match = tag.match(code_re);
         if (code_match) {
@@ -176,7 +162,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
             tag = tag.replace(/</gi, '&lt;');
         }
 
-        // Панели: {panel}/{info}/{note}/{warning}/{tip}
         const panel_re = /\{(panel|tip|info|note|warning)(.*)}/;
         if (!codeTagFlag && tag.match(panel_re)) {
             if (!panelTagFlag) {
@@ -248,7 +233,6 @@ function parseMarkup(sourceUri, sourceText, webview) {
             }
         }
 
-        // Списки: * - #
         const li_re = /^([-*#]+)\s(.*)/;
         const li_match = tag.match(li_re);
         if (li_match) {
@@ -287,15 +271,12 @@ function parseMarkup(sourceUri, sourceText, webview) {
             tag = tag.replace(/-{3}/gi, '&mdash;');
             tag = tag.replace(/-{2}/gi, '&ndash;');
         }
-        // Жирный
         tag = tag.replace(/\*([^*]*)\*/g, '<strong>$1</strong>');
-        // Курсив/зачёркнутый (не трогаем html-строки, картинки, списки)
         if (!html_tag && !tag.match('<img') && !listFlag) {
             tag = tag.replace(/{_}([^_]*)_/g, '<i>$1</i>');
             tag = tag.replace(/\B-((\([^)]*\)|{[^}]*}|\[[^]]+\]){0,3})(\S.*?\S|\S)-\B/g, " <span style='text-decoration: line-through;'>$3</span> ");
             tag = tag.replace(/(?:\b)_((\([^)]*\)|{[^}]*}|\[[^]]+\]){0,3})(\S.*?\S|\S)_(?:\b)/g, '<i>$3</i>');
         }
-        // Закрыть таблицу
         if (!tag.match(/<\/tr>$/) && tableFlag) {
             tag = '</tbody></table></div>' + tag;
             tableFlag = false;

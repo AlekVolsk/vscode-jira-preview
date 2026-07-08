@@ -7,8 +7,6 @@ const vscode = require('vscode');
 const path = require('path');
 const { parseMarkup } = require('./parser');
 
-// Корни, из которых webview разрешено грузить локальные ресурсы:
-// папка самого файла (там лежат картинки/вложения), корень воркспейса и папка расширения (css).
 function resourceRoots(context, docUri) {
     const roots = [vscode.Uri.file(path.dirname(docUri.fsPath)), context.extensionUri];
     const ws = vscode.workspace.getWorkspaceFolder(docUri);
@@ -44,13 +42,12 @@ ${body}
 }
 
 function activate(context) {
-    // documentUri.toString() -> WebviewPanel: одна превьюшка на файл.
     const panels = new Map();
 
     function openPreview(column) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showErrorMessage('Откройте .jira-файл, чтобы показать превью.');
+            vscode.window.showErrorMessage('Open .jira file for preview');
             return;
         }
         const document = editor.document;
@@ -80,12 +77,10 @@ function activate(context) {
         vscode.commands.registerCommand('jiraPreview.showPreviewToSide', () => openPreview(vscode.ViewColumn.Two)),
         vscode.commands.registerCommand('jiraPreview.openAttachment', (fsPath) => {
             const uri = vscode.Uri.file(fsPath);
-            // Показать файл в системном файловом менеджере (Excel-вложения и т.п.).
             vscode.commands.executeCommand('revealFileInOS', uri);
         })
     );
 
-    // Живое обновление превью при правке исходника.
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument((e) => {
             const panel = panels.get(e.document.uri.toString());
@@ -96,4 +91,4 @@ function activate(context) {
     );
 }
 
-function deactivate() {}
+function deactivate() { }

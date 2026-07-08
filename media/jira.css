@@ -1,6 +1,3 @@
-/* Стили превью Jira. Опираются на переменные темы VSCode, чтобы одинаково
-   читаться в светлой и тёмной теме. Часть правил — из denco.confluence-markup (MIT). */
-
 body {
     font-family: var(--vscode-font-family, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
     font-size: var(--vscode-editor-font-size, 14px);
@@ -147,7 +144,6 @@ ol.initial > li > ol > li > ol {
     list-style-type: lower-roman;
 }
 
-/* Панели-макросы */
 .panel, .info, .note, .warning, .tip {
     display: block;
     margin: 0.8em 0;
