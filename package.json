@@ -31,6 +31,10 @@
     ],
     "main": "./out/extension.js",
     "activationEvents": [],
+    "scripts": {
+        "build": "npx --yes @vscode/vsce package",
+        "publish": "npx --yes @vscode/vsce publish"
+    },
     "contributes": {
         "languages": [
             {
