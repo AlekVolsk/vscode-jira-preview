@@ -1,0 +1,4 @@
+.vscodeignore
+**/*.map
+images/*.svg
+images/icon-128.png

@@ -1,0 +1,170 @@
+/* Стили превью Jira. Опираются на переменные темы VSCode, чтобы одинаково
+   читаться в светлой и тёмной теме. Часть правил — из denco.confluence-markup (MIT). */
+
+body {
+    font-family: var(--vscode-font-family, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif);
+    font-size: var(--vscode-editor-font-size, 14px);
+    color: var(--vscode-editor-foreground);
+    padding: 0 30px 40px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+div {
+    margin-top: 0.6em;
+    margin-bottom: 0.6em;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.35));
+    border-radius: 3px;
+    margin: 4px 0;
+}
+
+a {
+    color: var(--vscode-textLink-foreground);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--vscode-textLink-activeForeground);
+    text-decoration: underline;
+}
+
+a.attachment {
+    display: inline-block;
+    padding: 2px 8px;
+    margin: 2px 0;
+    border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+    border-radius: 4px;
+    background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.1));
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background: var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+    margin: 1.2em 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--vscode-editor-foreground);
+    line-height: 1.25;
+    margin: 1em 0 0.4em;
+    font-weight: 600;
+}
+
+h1 {
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+}
+
+blockquote {
+    padding: 0.2em 0.9em;
+    margin: 0.6em 0;
+    border-left: 4px solid var(--vscode-textBlockQuote-border, var(--vscode-textLink-foreground));
+    background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.08));
+}
+
+blockquote p {
+    margin: 0.2em 0;
+}
+
+table {
+    border-collapse: collapse;
+    margin: 0.6em 0;
+    max-width: 100%;
+}
+
+th, td {
+    border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.45));
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+th {
+    background: var(--vscode-keybindingLabel-background, rgba(128, 128, 128, 0.18));
+    font-weight: 600;
+}
+
+code {
+    font-family: var(--vscode-editor-font-family, monospace);
+    background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.15));
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.code-block {
+    display: block;
+    margin: 0.8em 0;
+    border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+    border-radius: 4px;
+    overflow: auto;
+}
+
+.code-title {
+    display: block;
+    background: var(--vscode-editorGroupHeader-tabsBackground, rgba(128, 128, 128, 0.25));
+    font-weight: bold;
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+}
+
+pre {
+    margin: 0;
+}
+
+pre > code {
+    display: block;
+    background: var(--vscode-textCodeBlock-background, rgba(128, 128, 128, 0.12));
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    padding: 8px 12px;
+    line-height: 1.5;
+    border-radius: 0;
+}
+
+ul {
+    list-style-type: disc;
+}
+
+ul.alternate {
+    list-style-type: square;
+}
+
+ol.initial {
+    list-style: decimal;
+}
+
+ol.initial > li > ol {
+    list-style-type: lower-alpha;
+}
+
+ol.initial > li > ol > li > ol {
+    list-style-type: lower-roman;
+}
+
+/* Панели-макросы */
+.panel, .info, .note, .warning, .tip {
+    display: block;
+    margin: 0.8em 0;
+    padding: 8px 12px;
+    border: 1px solid var(--vscode-panel-border, rgba(128, 128, 128, 0.4));
+    border-left-width: 4px;
+    border-radius: 4px;
+    background: var(--vscode-textBlockQuote-background, rgba(128, 128, 128, 0.08));
+}
+
+.info { border-left-color: #4a90d9; }
+.note { border-left-color: #b8a600; }
+.warning { border-left-color: #d04437; }
+.tip { border-left-color: #4caf50; }
+
+.panel-title, .info-title, .note-title, .warning-title, .tip-title,
+.info-title-iconless, .note-title-iconless, .warning-title-iconless, .tip-title-iconless {
+    font-weight: bold;
+    margin-bottom: 4px;
+}

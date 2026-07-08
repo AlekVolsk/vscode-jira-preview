@@ -1,0 +1,86 @@
+{
+    "name": "jira-preview",
+    "displayName": "Jira Markup Preview",
+    "description": "Preview Jira wiki markup (.jira) locally, with images and attachments. No Jira access required.",
+    "version": "1.0.2",
+    "publisher": "AlekVolsk",
+    "author": "AlekVolsk",
+    "license": "MIT",
+    "icon": "images/icon.png",
+    "galleryBanner": {
+        "color": "#1e3a8a",
+        "theme": "dark"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/AlekVolsk/vscode-jira-preview.git"
+    },
+    "keywords": [
+        "jira",
+        "confluence",
+        "wiki",
+        "markup",
+        "preview"
+    ],
+    "engines": {
+        "vscode": "^1.75.0"
+    },
+    "categories": [
+        "Visualization",
+        "Programming Languages"
+    ],
+    "main": "./out/extension.js",
+    "activationEvents": [],
+    "contributes": {
+        "languages": [
+            {
+                "id": "jira",
+                "aliases": [
+                    "Jira",
+                    "Jira Markup"
+                ],
+                "extensions": [
+                    ".jira"
+                ]
+            }
+        ],
+        "commands": [
+            {
+                "command": "jiraPreview.showPreview",
+                "title": "Open Preview",
+                "category": "Jira",
+                "icon": "$(open-preview)"
+            },
+            {
+                "command": "jiraPreview.showPreviewToSide",
+                "title": "Open Preview to the Side",
+                "category": "Jira",
+                "icon": "$(open-preview)"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "jiraPreview.showPreview",
+                "key": "ctrl+shift+v",
+                "mac": "cmd+shift+v",
+                "when": "editorLangId == jira"
+            },
+            {
+                "command": "jiraPreview.showPreviewToSide",
+                "key": "ctrl+k v",
+                "mac": "cmd+k v",
+                "when": "editorLangId == jira"
+            }
+        ],
+        "menus": {
+            "editor/title": [
+                {
+                    "command": "jiraPreview.showPreview",
+                    "alt": "jiraPreview.showPreviewToSide",
+                    "when": "editorLangId == jira",
+                    "group": "navigation"
+                }
+            ]
+        }
+    }
+}
