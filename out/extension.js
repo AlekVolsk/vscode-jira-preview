@@ -6,6 +6,47 @@ exports.deactivate = deactivate;
 const vscode = require('vscode');
 const path = require('path');
 const { parseMarkup } = require('./parser');
+const { formatJira, isInsideVerbatim } = require('./formatter');
+
+function formatterOptions(document) {
+    const config = vscode.workspace.getConfiguration('jiraFormat', document.uri);
+    return {
+        blankLines: config.get('blankLines'),
+        listIndent: config.get('listIndent'),
+        cleanupMarkup: config.get('cleanupMarkup'),
+        collapseSpaces: config.get('collapseSpaces'),
+        eol: document.eol === vscode.EndOfLine.CRLF ? '\r\n' : '\n',
+    };
+}
+
+const formattingProvider = {
+    provideDocumentFormattingEdits(document) {
+        const source = document.getText();
+        const formatted = formatJira(source, formatterOptions(document));
+        if (formatted === source) {
+            return [];
+        }
+        const whole = new vscode.Range(document.positionAt(0), document.positionAt(source.length));
+        return [vscode.TextEdit.replace(whole, formatted)];
+    },
+};
+
+const rangeFormattingProvider = {
+    provideDocumentRangeFormattingEdits(document, range) {
+        const firstLine = range.start.line;
+        const lastLine = range.end.character === 0 && range.end.line > firstLine ? range.end.line - 1 : range.end.line;
+        if (isInsideVerbatim(document.getText(), firstLine)) {
+            return [];
+        }
+        const lines = new vscode.Range(firstLine, 0, lastLine, document.lineAt(lastLine).text.length);
+        const source = document.getText(lines);
+        const formatted = formatJira(source, { ...formatterOptions(document), finalNewline: false });
+        if (formatted === source) {
+            return [];
+        }
+        return [vscode.TextEdit.replace(lines, formatted)];
+    },
+};
 
 function resourceRoots(context, docUri) {
     const roots = [vscode.Uri.file(path.dirname(docUri.fsPath)), context.extensionUri];
@@ -79,6 +120,11 @@ function activate(context) {
             const uri = vscode.Uri.file(fsPath);
             vscode.commands.executeCommand('revealFileInOS', uri);
         })
+    );
+
+    context.subscriptions.push(
+        vscode.languages.registerDocumentFormattingEditProvider('jira', formattingProvider),
+        vscode.languages.registerDocumentRangeFormattingEditProvider('jira', rangeFormattingProvider)
     );
 
     context.subscriptions.push(

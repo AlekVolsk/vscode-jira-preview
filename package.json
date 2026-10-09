@@ -1,8 +1,8 @@
 {
     "name": "jira-preview",
     "displayName": "Jira Markup Preview",
-    "description": "Preview Jira wiki markup (.jira) locally, with images and attachments. No Jira access required.",
-    "version": "1.0.2",
+    "description": "Preview and format Jira wiki markup (.jira) locally, with images and attachments. No Jira access required.",
+    "version": "1.1.0",
     "publisher": "AlekVolsk",
     "author": "AlekVolsk",
     "license": "MIT",
@@ -20,7 +20,8 @@
         "confluence",
         "wiki",
         "markup",
-        "preview"
+        "preview",
+        "formatter"
     ],
     "engines": {
         "vscode": "^1.75.0"
@@ -30,12 +31,70 @@
         "Programming Languages"
     ],
     "main": "./out/extension.js",
-    "activationEvents": [],
+    "activationEvents": [
+        "onLanguage:jira"
+    ],
     "scripts": {
+        "test": "node --test test/*.test.js",
         "build": "npx --yes @vscode/vsce package",
         "publish": "npx --yes @vscode/vsce publish"
     },
     "contributes": {
+        "configuration": {
+            "title": "Jira Markup",
+            "properties": {
+                "jiraFormat.blankLines": {
+                    "type": "string",
+                    "enum": [
+                        "full",
+                        "headings",
+                        "minimal"
+                    ],
+                    "enumDescriptions": [
+                        "One blank line before and after every heading, and around lists, tables, code and panel blocks. Blank lines inside a list are removed — in Jira they break the list.",
+                        "Blank line before a heading but not after; blocks are still separated.",
+                        "Only collapse runs of blank lines and trim the ends of the file; never insert one."
+                    ],
+                    "default": "full",
+                    "markdownDescription": "How aggressively blank lines are placed between blocks."
+                },
+                "jiraFormat.listIndent": {
+                    "type": "string",
+                    "enum": [
+                        "depth",
+                        "space",
+                        "flush"
+                    ],
+                    "enumDescriptions": [
+                        "Indent by nesting depth: a level-N marker gets N-1 leading spaces.",
+                        "One leading space before every marker, which is what Jira itself emits.",
+                        "No leading space; every marker sits at column 0."
+                    ],
+                    "default": "depth",
+                    "markdownDescription": "How list markers (`*`, `#`, `-`) are aligned. A single space always follows the marker."
+                },
+                "jiraFormat.cleanupMarkup": {
+                    "type": "string",
+                    "enum": [
+                        "full",
+                        "empty",
+                        "off"
+                    ],
+                    "enumDescriptions": [
+                        "Also unwrap braced delimiters — {*}text{*} becomes *text* where Jira renders both the same.",
+                        "Only drop empty {} separators and constructs with no content.",
+                        "Leave markup constructs alone."
+                    ],
+                    "default": "full",
+                    "markdownDescription": "How deeply markup constructs are cleaned up. `{{{}name{}}}` becomes `{{name}}` at every level except `off`."
+                },
+                "jiraFormat.collapseSpaces": {
+                    "type": "boolean",
+                    "default": true,
+                    "markdownDescription": "Collapse runs of spaces between words into one. Not applied inside `{code}` / `{noformat}` blocks, tables, or inline monospace."
+                }
+            }
+        },
         "languages": [
             {
                 "id": "jira",
@@ -47,6 +106,34 @@
                     ".jira"
                 ]
             }
+        ],
+        "grammars": [
+            {
+                "language": "jira",
+                "scopeName": "text.jira",
+                "path": "./syntaxes/jira.tmLanguage.json",
+                "embeddedLanguages": {
+                        "meta.embedded.block.sql": "sql",
+                        "meta.embedded.block.java": "java",
+                        "meta.embedded.block.javascript": "javascript",
+                        "meta.embedded.block.js": "javascript",
+                        "meta.embedded.block.json": "json",
+                        "meta.embedded.block.php": "php",
+                        "meta.embedded.block.python": "python",
+                        "meta.embedded.block.xml": "xml",
+                        "meta.embedded.block.html": "html",
+                        "meta.embedded.block.css": "css",
+                        "meta.embedded.block.bash": "shellscript",
+                        "meta.embedded.block.sh": "shellscript",
+                        "meta.embedded.block.yaml": "yaml",
+                        "meta.embedded.block.go": "go",
+                        "meta.embedded.block.ruby": "ruby",
+                        "meta.embedded.block.c": "c",
+                        "meta.embedded.block.cpp": "cpp",
+                        "meta.embedded.block.groovy": "groovy",
+                        "meta.embedded.block.scala": "scala"
+                }
+        }
         ],
         "commands": [
             {

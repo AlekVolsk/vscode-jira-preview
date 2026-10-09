@@ -2,3 +2,6 @@
 **/*.map
 images/*.svg
 images/icon-128.png
+DEVELOPMENT.md
+test/**
+node_modules/**
