@@ -2,10 +2,10 @@
     "name": "jira-preview",
     "displayName": "Jira Markup Preview",
     "description": "Preview and format Jira wiki markup (.jira) locally, with images and attachments. No Jira access required.",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "publisher": "AlekVolsk",
     "author": "AlekVolsk",
-    "license": "MIT",
+    "license": "BSD-3-Clause",
     "icon": "images/icon.png",
     "galleryBanner": {
         "color": "#1e3a8a",
@@ -31,13 +31,12 @@
         "Programming Languages"
     ],
     "main": "./out/extension.js",
-    "activationEvents": [
-        "onLanguage:jira"
-    ],
+    "activationEvents": [],
     "scripts": {
         "test": "node --test test/*.test.js",
-        "build": "npx --yes @vscode/vsce package",
-        "publish": "npx --yes @vscode/vsce publish"
+        "build": "npx --yes @vscode/vsce package -o jira-preview.vsix",
+        "publish": "npx --yes @vscode/vsce publish",
+        "check": "tsc -p out/jsconfig.json"
     },
     "contributes": {
         "configuration": {
@@ -113,27 +112,27 @@
                 "scopeName": "text.jira",
                 "path": "./syntaxes/jira.tmLanguage.json",
                 "embeddedLanguages": {
-                        "meta.embedded.block.sql": "sql",
-                        "meta.embedded.block.java": "java",
-                        "meta.embedded.block.javascript": "javascript",
-                        "meta.embedded.block.js": "javascript",
-                        "meta.embedded.block.json": "json",
-                        "meta.embedded.block.php": "php",
-                        "meta.embedded.block.python": "python",
-                        "meta.embedded.block.xml": "xml",
-                        "meta.embedded.block.html": "html",
-                        "meta.embedded.block.css": "css",
-                        "meta.embedded.block.bash": "shellscript",
-                        "meta.embedded.block.sh": "shellscript",
-                        "meta.embedded.block.yaml": "yaml",
-                        "meta.embedded.block.go": "go",
-                        "meta.embedded.block.ruby": "ruby",
-                        "meta.embedded.block.c": "c",
-                        "meta.embedded.block.cpp": "cpp",
-                        "meta.embedded.block.groovy": "groovy",
-                        "meta.embedded.block.scala": "scala"
+                    "meta.embedded.block.sql": "sql",
+                    "meta.embedded.block.java": "java",
+                    "meta.embedded.block.javascript": "javascript",
+                    "meta.embedded.block.js": "javascript",
+                    "meta.embedded.block.json": "json",
+                    "meta.embedded.block.php": "php",
+                    "meta.embedded.block.python": "python",
+                    "meta.embedded.block.xml": "xml",
+                    "meta.embedded.block.html": "html",
+                    "meta.embedded.block.css": "css",
+                    "meta.embedded.block.bash": "shellscript",
+                    "meta.embedded.block.sh": "shellscript",
+                    "meta.embedded.block.yaml": "yaml",
+                    "meta.embedded.block.go": "go",
+                    "meta.embedded.block.ruby": "ruby",
+                    "meta.embedded.block.c": "c",
+                    "meta.embedded.block.cpp": "cpp",
+                    "meta.embedded.block.groovy": "groovy",
+                    "meta.embedded.block.scala": "scala"
                 }
-        }
+            }
         ],
         "commands": [
             {
@@ -173,5 +172,10 @@
                 }
             ]
         }
+    },
+    "devDependencies": {
+        "@types/node": "^20.19.43",
+        "@types/vscode": "1.75.0",
+        "typescript": "^7.0.2"
     }
 }

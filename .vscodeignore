@@ -2,6 +2,10 @@
 **/*.map
 images/*.svg
 images/icon-128.png
-DEVELOPMENT.md
+.claude/**
+CLAUDE.md
 test/**
 node_modules/**
+**/jsconfig.json
+package-lock.json
+**/*.d.ts

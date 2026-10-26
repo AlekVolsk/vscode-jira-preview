@@ -1,3 +1,4 @@
+// @ts-check
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
 exports.parseMarkup = parseMarkup;
@@ -5,6 +6,30 @@ exports.parseMarkup = parseMarkup;
 const vscode = require('vscode');
 const path = require('path');
 const hljs = require('../lib/hljs/core');
+
+/**
+ * @typedef {Pick<import('vscode').Webview, 'asWebviewUri'>} ResourceWebview
+ * @typedef {Pick<import('vscode').Uri, 'fsPath'>} SourceUri
+ */
+
+/**
+ * @typedef {object} TocHeading
+ * @property {number} level
+ * @property {string} id
+ * @property {string} text
+ */
+
+/**
+ * @typedef {object} TocLink
+ * @property {string} href
+ * @property {string} text
+ */
+
+/**
+ * @typedef {object} ListState
+ * @property {string[]} listArr
+ * @property {boolean} listFlag
+ */
 
 const HLJS_LANGUAGES = [
     'sql', 'java', 'javascript', 'json', 'php', 'python', 'xml', 'css',
@@ -14,8 +39,10 @@ for (const language of HLJS_LANGUAGES) {
     hljs.registerLanguage(language, require(`../lib/hljs/languages/${language}`));
 }
 
-let currentWebview = null;
-
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function escapeHtml(text) {
     return text
         .replace(/&/g, '&amp;')
@@ -28,6 +55,10 @@ function escapeHtml(text) {
  * Inline markup is applied to text only: HTML tags built earlier in the pass carry
  * `_` and `-` inside hrefs, filenames and titles, and `<code>` holds text that is
  * quoted verbatim.
+ *
+ * @param {string} text
+ * @param {(text: string) => string} replacer
+ * @returns {string}
  */
 function replaceOutsideHtml(text, replacer) {
     const re = /<code>[\s\S]*?<\/code>|<[^>]*>/g;
@@ -41,20 +72,34 @@ function replaceOutsideHtml(text, replacer) {
     return out + replacer(text.slice(last));
 }
 
-function resolveResource(searchUri, link) {
+/**
+ * @param {ResourceWebview} webview
+ * @param {SourceUri} searchUri
+ * @param {string} link
+ * @returns {string}
+ */
+function resolveResource(webview, searchUri, link) {
     if (/^(https?|ftps?):\/\//i.test(link)) {
         return link;
     }
     const abs = path.isAbsolute(link)
         ? link
         : path.join(path.dirname(searchUri.fsPath), link);
-    return currentWebview.asWebviewUri(vscode.Uri.file(abs)).toString();
+    return webview.asWebviewUri(vscode.Uri.file(abs)).toString();
 }
 
+/**
+ * @param {string} html
+ * @returns {string}
+ */
 function tocText(html) {
     return escapeHtml(html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim());
 }
 
+/**
+ * @param {TocHeading[]} entries
+ * @returns {string}
+ */
 function renderTocTree(entries) {
     const parts = [];
     const open = [];
@@ -78,6 +123,11 @@ function renderTocTree(entries) {
     return parts.join('');
 }
 
+/**
+ * @param {string} title
+ * @param {TocLink[]} items
+ * @returns {string}
+ */
 function renderTocFlat(title, items) {
     if (items.length === 0) {
         return '';
@@ -86,8 +136,15 @@ function renderTocFlat(title, items) {
     return `<div class="toc-section">${title}</div><ul class="toc-flat">${rows}</ul>`;
 }
 
+/**
+ * @param {string} html
+ * @param {RegExp} re
+ * @param {(match: RegExpExecArray) => TocLink} build
+ * @returns {TocLink[]}
+ */
 function collect(html, re, build) {
     const items = [];
+    /** @type {Set<string>} */
     const seen = new Set();
     let match;
     re.lastIndex = 0;
@@ -106,8 +163,12 @@ function collect(html, re, build) {
  * being parsed: by then a heading holds its inline markup, and headings that only
  * look like headings — the ones inside `{code}` — are already escaped and invisible
  * to this pass.
+ *
+ * @param {string} html
+ * @returns {string}
  */
 function buildToc(html) {
+    /** @type {TocHeading[]} */
     const headings = [];
     const anchored = html.replace(/<h([1-6])>([\s\S]*?)<\/h\1>/g, (whole, level, inner) => {
         const id = `toc-${headings.length + 1}`;
@@ -136,6 +197,9 @@ function buildToc(html) {
  * The preview carries no script — the CSP admits none — so a code block is coloured
  * here and reaches the webview as finished markup. The body arrives with `<` already
  * escaped; highlight.js needs the source, and escapes what it returns itself.
+ *
+ * @param {string} html
+ * @returns {string}
  */
 function highlightCodeBlocks(html) {
     return html.replace(/<pre><code class="language-([^"]+)">([\s\S]*?)<\/code><\/pre>/g, (whole, language, body) => {
@@ -152,6 +216,9 @@ function highlightCodeBlocks(html) {
  * An empty code block is a grey frame around nothing — an export artefact rather
  * than content. It is hidden here instead of being cut from the source, so the
  * file keeps what its author wrote.
+ *
+ * @param {string} html
+ * @returns {string}
  */
 function dropEmptyCodeBlocks(html) {
     return html.replace(
@@ -160,6 +227,10 @@ function dropEmptyCodeBlocks(html) {
     );
 }
 
+/**
+ * @param {string[]} listArr
+ * @returns {string}
+ */
 function closeLists(listArr) {
     return listArr.length === 0 ? '' : '</' + listArr.slice().reverse().join('></li></') + '>';
 }
@@ -168,9 +239,13 @@ function closeLists(listArr) {
  * A panel or a quote opened under a list item belongs to that item, and its body keeps
  * a list state of its own: a blank line inside the block ends only the lists started
  * in it, never the one around it.
+ *
+ * @param {SourceUri} sourceUri
+ * @param {string} sourceText
+ * @param {ResourceWebview} webview
+ * @returns {string}
  */
 function parseMarkup(sourceUri, sourceText, webview) {
-    currentWebview = webview;
     let result = '';
     let listTag = '';
     let listStyle = '';
@@ -179,14 +254,16 @@ function parseMarkup(sourceUri, sourceText, webview) {
     let quoteTagFlag = false;
     let tableFlag = false;
     let listFlag = false;
+    /** @type {string[]} */
     let listArr = [];
+    /** @type {ListState[]} */
     const outerLists = [];
     const enterBlock = () => {
         outerLists.push({ listArr, listFlag });
         listArr = [];
         listFlag = false;
     };
-    const leaveBlock = (closingTag) => {
+    const leaveBlock = (/** @type {string} */ closingTag) => {
         const html = closeLists(listArr) + closingTag;
         ({ listArr, listFlag } = outerLists.pop() ?? { listArr: [], listFlag: false });
         return listFlag ? `${html}</li>` : html;
@@ -243,7 +320,7 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 if (attrs.length != 0) {
                     imgAttr = attrs.replace(/=/gi, '="').replace(/,/gi, '" ') + '"';
                 }
-                const imageLink = resolveResource(sourceUri, link);
+                const imageLink = resolveResource(webview, sourceUri, link);
                 const imgAlt = link.substring(link.lastIndexOf('/') + 1);
                 return `<img alt="${escapeHtml(imgAlt)}" src="${imageLink}" ${imgAttr}>`;
             }));
@@ -289,7 +366,7 @@ function parseMarkup(sourceUri, sourceText, webview) {
         const code_match = tag.match(code_re);
         if (code_match) {
             if (!codeTagFlag) {
-                tag = tag.replace(code_re, function (m0, m1, m2) {
+                tag = tag.replace(code_re, function (m0, m1, /** @type {string} */ m2) {
                     let title = '';
                     let language = '';
                     m2.split(/[|:]/).forEach((el) => {
@@ -324,7 +401,7 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 let panelStyle = '';
                 let titleStyle = '';
                 let iconlessFlag = '';
-                tag = tag.replace(panel_re, function (m0, m1, m2) {
+                tag = tag.replace(panel_re, function (m0, m1, /** @type {string} */ m2) {
                     const panelClass = m1;
                     let res = `<div class="${panelClass} ${panelClass}-body" $panelStyle>`;
                     const splits = m2.split(/[|:]/);

@@ -3,3 +3,8 @@
 
 # Зависимости (нужны только для конвертации иконки при сборке)
 node_modules/
+package-lock.json
+
+# Локальный контекст Claude Code
+.claude/
+CLAUDE.md

@@ -1,3 +1,4 @@
+// @ts-check
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
 exports.activate = activate;
@@ -8,6 +9,14 @@ const path = require('path');
 const { parseMarkup } = require('./parser');
 const { formatJira, isInsideVerbatim } = require('./formatter');
 
+/**
+ * @typedef {import('./formatter').FormatOptions} FormatOptions
+ */
+
+/**
+ * @param {vscode.TextDocument} document
+ * @returns {FormatOptions}
+ */
 function formatterOptions(document) {
     const config = vscode.workspace.getConfiguration('jiraFormat', document.uri);
     return {
@@ -19,6 +28,7 @@ function formatterOptions(document) {
     };
 }
 
+/** @type {vscode.DocumentFormattingEditProvider} */
 const formattingProvider = {
     provideDocumentFormattingEdits(document) {
         const source = document.getText();
@@ -31,6 +41,7 @@ const formattingProvider = {
     },
 };
 
+/** @type {vscode.DocumentRangeFormattingEditProvider} */
 const rangeFormattingProvider = {
     provideDocumentRangeFormattingEdits(document, range) {
         const firstLine = range.start.line;
@@ -48,6 +59,11 @@ const rangeFormattingProvider = {
     },
 };
 
+/**
+ * @param {vscode.ExtensionContext} context
+ * @param {vscode.Uri} docUri
+ * @returns {vscode.Uri[]}
+ */
 function resourceRoots(context, docUri) {
     const roots = [vscode.Uri.file(path.dirname(docUri.fsPath)), context.extensionUri];
     const ws = vscode.workspace.getWorkspaceFolder(docUri);
@@ -57,6 +73,12 @@ function resourceRoots(context, docUri) {
     return roots;
 }
 
+/**
+ * @param {vscode.Webview} webview
+ * @param {vscode.ExtensionContext} context
+ * @param {vscode.TextDocument} document
+ * @returns {string}
+ */
 function renderHtml(webview, context, document) {
     const body = parseMarkup(document.uri, document.getText(), webview);
     const cssUri = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'media', 'jira.css'));
@@ -82,9 +104,18 @@ ${body}
 </html>`;
 }
 
+/**
+ * @param {vscode.ExtensionContext} context
+ * @returns {void}
+ */
 function activate(context) {
+    /** @type {Map<string, vscode.WebviewPanel>} */
     const panels = new Map();
 
+    /**
+     * @param {vscode.ViewColumn} column
+     * @returns {void}
+     */
     function openPreview(column) {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -116,7 +147,7 @@ function activate(context) {
     context.subscriptions.push(
         vscode.commands.registerCommand('jiraPreview.showPreview', () => openPreview(vscode.ViewColumn.Active)),
         vscode.commands.registerCommand('jiraPreview.showPreviewToSide', () => openPreview(vscode.ViewColumn.Two)),
-        vscode.commands.registerCommand('jiraPreview.openAttachment', (fsPath) => {
+        vscode.commands.registerCommand('jiraPreview.openAttachment', (/** @type {string} */ fsPath) => {
             const uri = vscode.Uri.file(fsPath);
             vscode.commands.executeCommand('revealFileInOS', uri);
         })
@@ -137,4 +168,7 @@ function activate(context) {
     );
 }
 
+/**
+ * @returns {void}
+ */
 function deactivate() { }

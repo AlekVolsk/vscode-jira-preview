@@ -1,8 +1,95 @@
+// @ts-check
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
 exports.formatJira = formatJira;
 exports.isInsideVerbatim = isInsideVerbatim;
 
+/**
+ * @typedef {'full' | 'headings' | 'minimal'} BlankLinesMode
+ * @typedef {'depth' | 'space' | 'flush'} ListIndentMode
+ * @typedef {'full' | 'empty' | 'off'} CleanupMarkupMode
+ * @typedef {'\n' | '\r\n'} LineEnding
+ */
+
+/**
+ * @typedef {object} FormatSettings
+ * @property {BlankLinesMode} blankLines
+ * @property {ListIndentMode} listIndent
+ * @property {CleanupMarkupMode} cleanupMarkup
+ * @property {boolean} collapseSpaces
+ * @property {LineEnding} eol
+ * @property {boolean} finalNewline
+ */
+
+/**
+ * @typedef {Partial<FormatSettings>} FormatOptions
+ */
+
+/**
+ * @typedef {object} Fence
+ * @property {string} macro
+ * @property {string | null} params
+ */
+
+/**
+ * @typedef {object} FencePosition
+ * @property {number} line
+ * @property {string} macro
+ * @property {string | null} params
+ */
+
+/**
+ * @typedef {object} FenceRoles
+ * @property {Map<number, 'open' | 'close'>} roles
+ * @property {Set<number>} dropped
+ */
+
+/**
+ * @typedef {object} SegmentContext
+ * @property {string} prevChar
+ * @property {string} nextChar
+ * @property {boolean} lineStart
+ */
+
+/**
+ * @typedef {'hr' | 'heading' | 'table' | 'list' | 'listcont' | 'text'} LineKind
+ */
+
+/**
+ * @typedef {object} ClassifiedLine
+ * @property {LineKind} kind
+ * @property {string} text
+ * @property {string} [marker]
+ */
+
+/**
+ * @typedef {object} TextItem
+ * @property {LineKind | 'verbatim'} kind
+ * @property {string} text
+ * @property {boolean} blankBefore
+ * @property {string} [marker]
+ */
+
+/**
+ * @typedef {object} FenceItem
+ * @property {'fenceOpen' | 'fenceClose'} kind
+ * @property {string} text
+ * @property {boolean} blankBefore
+ * @property {boolean} inList
+ * @property {undefined} [marker]
+ */
+
+/**
+ * @typedef {TextItem | FenceItem} Item
+ */
+
+/**
+ * @typedef {object} OpenFence
+ * @property {string} macro
+ * @property {boolean} inList
+ */
+
+/** @type {FormatSettings} */
 const DEFAULTS = {
     blankLines: 'full',
     listIndent: 'depth',
@@ -43,11 +130,19 @@ const JIRA_LANGUAGES = [
  */
 const NOTICE_RE = /^Unable to find source-code formatter for language: [^.]*\. Available languages are: .*?yaml/;
 
+/**
+ * @param {string} line
+ * @returns {string | null}
+ */
 function stripFormatterNotice(line) {
     const notice = line.match(NOTICE_RE);
     return notice === null ? null : line.slice(notice[0].length);
 }
 
+/**
+ * @param {string} trimmed
+ * @returns {Fence | null}
+ */
 function fenceParts(trimmed) {
     const match = trimmed.match(/^\{(code|noformat|panel|quote|tip|info|note|warning)(?::([^}]*))?\}$/);
     if (match === null) {
@@ -59,6 +154,9 @@ function fenceParts(trimmed) {
 /**
  * `{panel:title=…}` carries a title, not a language: only a code fence has its
  * parameter checked against what Jira can highlight.
+ *
+ * @param {Fence} fence
+ * @returns {string}
  */
 function fenceParams(fence) {
     if (fence.params === null) {
@@ -76,9 +174,14 @@ function fenceParams(fence) {
  * lost, and the stale opening one is dropped: its body was never code. The exception
  * is a fence that has no closing fence of its own ahead, which was meant as a closing
  * one and merely kept its language.
+ *
+ * @param {FencePosition[]} positions
+ * @returns {FenceRoles}
  */
 function fenceRoles(positions) {
+    /** @type {Map<number, 'open' | 'close'>} */
     const roles = new Map();
+    /** @type {Set<number>} */
     const dropped = new Set();
     let open = -1;
     for (let i = 0; i < positions.length; i += 1) {
@@ -110,8 +213,12 @@ function fenceRoles(positions) {
 /**
  * Fences are repaired before anything else looks at the document: the notice is cut,
  * a language Jira does not know becomes `none`, and a closing fence is written bare.
+ *
+ * @param {string[]} lines
+ * @returns {string[]}
  */
 function repairFences(lines) {
+    /** @type {string[]} */
     const cleaned = [];
     for (const raw of lines) {
         const stripped = stripFormatterNotice(raw.trim());
@@ -129,6 +236,7 @@ function repairFences(lines) {
         }
     }
 
+    /** @type {FencePosition[]} */
     const positions = [];
     cleaned.forEach((line, index) => {
         const fence = fenceParts(line.trim());
@@ -139,17 +247,18 @@ function repairFences(lines) {
     const { roles, dropped } = fenceRoles(positions);
 
     const out = [];
+    /** @type {string[]} */
     const unclosed = [];
     cleaned.forEach((line, index) => {
         if (dropped.has(index)) {
             return;
         }
         const role = roles.get(index);
-        if (role === undefined) {
+        const fence = fenceParts(line.trim());
+        if (role === undefined || fence === null) {
             out.push(line);
             return;
         }
-        const fence = fenceParts(line.trim());
         if (role === 'close') {
             unclosed.pop();
             out.push(`{${fence.macro}}`);
@@ -167,6 +276,10 @@ function repairFences(lines) {
     return out;
 }
 
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function removeEmptySeparators(text) {
     let out = '';
     let i = 0;
@@ -189,9 +302,13 @@ function removeEmptySeparators(text) {
  * `{*}` both opens and closes, so `{*}a{*}{*}b{*}` holds a closing and an opening
  * token side by side, not an empty pair. Tokens are paired in order of appearance
  * and only a pair with nothing between its halves is dropped.
+ *
+ * @param {string} text
+ * @returns {string}
  */
 function removeEmptyBracedPairs(text) {
     const re = /\{([*_+^~-])\}/g;
+    /** @type {Map<string, number[]>} */
     const seen = new Map();
     let match;
     while ((match = re.exec(text)) !== null) {
@@ -202,6 +319,7 @@ function removeEmptyBracedPairs(text) {
             found.push(match.index);
         }
     }
+    /** @type {Array<[number, number]>} */
     const cuts = [];
     for (const positions of seen.values()) {
         for (let i = 0; i + 1 < positions.length; i += 2) {
@@ -232,6 +350,9 @@ const EMPTY_PAIR_RES = [
 /**
  * A pair of delimiters with nothing between them renders as nothing but leaks its
  * characters into the text. `--` is left alone: it is a dash, not empty markup.
+ *
+ * @param {string} text
+ * @returns {string}
  */
 function removeEmptyPairs(text) {
     let out = text;
@@ -248,6 +369,10 @@ function removeEmptyPairs(text) {
     return out;
 }
 
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function removeEmptyConstructs(text) {
     return removeEmptyPairs(removeEmptyBracedPairs(text))
         .replace(/\{\{\{\}\}\}/g, '')
@@ -255,10 +380,22 @@ function removeEmptyConstructs(text) {
         .replace(/\{color:[^}]*\}\{color\}/g, '');
 }
 
+/**
+ * @param {string} text
+ * @returns {string}
+ */
 function cleanupEmpty(text) {
     return removeEmptyConstructs(removeEmptySeparators(removeEmptyConstructs(text)));
 }
 
+/**
+ * @param {string} delim
+ * @param {string} body
+ * @param {string} prev
+ * @param {string} next
+ * @param {boolean} atLineStart
+ * @returns {boolean}
+ */
 function canUnwrap(delim, body, prev, next, atLineStart) {
     if (body === '' || body.includes(delim)) {
         return false;
@@ -282,6 +419,10 @@ function canUnwrap(delim, body, prev, next, atLineStart) {
  * `{*}text{*}` is the escaped form of `*text*`, needed only when a neighbouring
  * character would swallow the bare delimiter. Where the plain form renders the
  * same, the braces are noise.
+ *
+ * @param {string} segment
+ * @param {SegmentContext} context
+ * @returns {string}
  */
 function unwrapBraceDelimiters(segment, context) {
     const re = /\{([*_+^~-])\}(.+?)\{\1\}/g;
@@ -312,7 +453,12 @@ function unwrapBraceDelimiters(segment, context) {
     return out + segment.slice(last);
 }
 
+/**
+ * @param {string} line
+ * @returns {Array<[number, number]>}
+ */
 function protectedRanges(line) {
+    /** @type {Array<[number, number]>} */
     const ranges = [];
     PROTECT_RE.lastIndex = 0;
     let match;
@@ -322,6 +468,12 @@ function protectedRanges(line) {
     return ranges;
 }
 
+/**
+ * @param {string} line
+ * @param {boolean} atLineStart
+ * @param {(segment: string, context: SegmentContext) => string} transform
+ * @returns {string}
+ */
 function applyToFreeText(line, atLineStart, transform) {
     let out = '';
     let last = 0;
@@ -342,6 +494,13 @@ function applyToFreeText(line, atLineStart, transform) {
     return out;
 }
 
+/**
+ * @param {string} line
+ * @param {FormatSettings} options
+ * @param {boolean} atLineStart
+ * @param {boolean} isTable
+ * @returns {string}
+ */
 function normalizeInline(line, options, atLineStart, isTable) {
     let text = line;
     if (options.cleanupMarkup !== 'off') {
@@ -359,6 +518,11 @@ function normalizeInline(line, options, atLineStart, isTable) {
     });
 }
 
+/**
+ * @param {string} marker
+ * @param {FormatSettings} options
+ * @returns {string}
+ */
 function listPrefix(marker, options) {
     if (options.listIndent === 'flush') {
         return marker;
@@ -369,11 +533,21 @@ function listPrefix(marker, options) {
     return ' '.repeat(marker.length - 1) + marker;
 }
 
+/**
+ * @param {string} trimmed
+ * @returns {string | null}
+ */
 function fenceName(trimmed) {
     const match = trimmed.match(FENCE_RE);
     return match ? match[1] : null;
 }
 
+/**
+ * @param {string} trimmed
+ * @param {FormatSettings} options
+ * @param {Item | null} previous
+ * @returns {ClassifiedLine}
+ */
 function classify(trimmed, options, previous) {
     if (HR_RE.test(trimmed)) {
         return { kind: 'hr', text: '----' };
@@ -397,6 +571,13 @@ function classify(trimmed, options, previous) {
     return { kind, text: normalizeInline(trimmed, options, true, false).trim() };
 }
 
+/**
+ * @param {Item} prev
+ * @param {Item} current
+ * @param {boolean} hadBlank
+ * @param {FormatSettings} options
+ * @returns {boolean}
+ */
 function needBlank(prev, current, hadBlank, options) {
     if (options.blankLines === 'minimal') {
         return hadBlank;
@@ -427,7 +608,7 @@ function needBlank(prev, current, hadBlank, options) {
     }
     if (prev.kind === current.kind) {
         if (current.kind === 'list') {
-            return prev.marker[0] !== current.marker[0];
+            return prev.marker?.[0] !== current.marker?.[0];
         }
         return current.kind === 'table' ? false : hadBlank;
     }
@@ -438,6 +619,9 @@ function needBlank(prev, current, hadBlank, options) {
  * A block opened right under a list item, with no blank line between them, belongs to
  * that item. A blank line there would end the list in Jira, so none is inserted around
  * the block — only the ones its author wrote are kept.
+ *
+ * @param {Item | null} previous
+ * @returns {boolean}
  */
 function continuesList(previous) {
     if (previous === null) {
@@ -446,8 +630,15 @@ function continuesList(previous) {
     return previous.kind === 'list' || previous.kind === 'listcont' || (previous.kind === 'fenceClose' && previous.inList);
 }
 
+/**
+ * @param {string} text
+ * @param {FormatSettings} options
+ * @returns {Item[]}
+ */
 function collect(text, options) {
+    /** @type {Item[]} */
     const items = [];
+    /** @type {OpenFence[]} */
     const fences = [];
     let pendingBlank = false;
     const source = text.split(/\r\n|\r|\n/);
@@ -492,6 +683,11 @@ function collect(text, options) {
     return items;
 }
 
+/**
+ * @param {string} text
+ * @param {FormatOptions} [options]
+ * @returns {string}
+ */
 function formatJira(text, options) {
     const settings = { ...DEFAULTS, ...options };
     const items = collect(text, settings);
@@ -516,7 +712,13 @@ function formatJira(text, options) {
     return lines.join(settings.eol) + (settings.finalNewline ? settings.eol : '');
 }
 
+/**
+ * @param {string} text
+ * @param {number} lineIndex
+ * @returns {boolean}
+ */
 function isInsideVerbatim(text, lineIndex) {
+    /** @type {string[]} */
     const fences = [];
     const lines = text.split(/\r\n|\r|\n/);
     for (let i = 0; i < lineIndex && i < lines.length; i += 1) {

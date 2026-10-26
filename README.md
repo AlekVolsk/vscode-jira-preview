@@ -2,6 +2,8 @@
 
 A local preview and formatter for **Jira wiki markup** (`.jira`) files — like the built-in Markdown preview. Works fully offline: it parses the file text into HTML and renders it in a webview. **No Jira access, tokens, or network required.**
 
+> This extension was created and is maintained with the help of AI tools.
+
 ## Features
 
 - Preview via `Ctrl+Shift+V` / `Cmd+Shift+V` (in the current editor group) and `Ctrl+K V` / `Cmd+K V` (to the side), plus a button in the editor title bar: click opens in the current group, `Alt`+click opens to the side.
@@ -52,6 +54,10 @@ Images (`!image.png!`) and attachments (`[^file]`) are resolved relative to the 
 
 Non-image files open in the OS file manager.
 
+## Changelog
+
+Release pages carry no detailed notes; what changed in each version is in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
-MIT. The markup parser is based on `markupParser` from the `denco.confluence-markup` extension (MIT, © Denis Baumgärtner).
+BSD 3-Clause License. The markup parser is based on `markupParser` from the `denco.confluence-markup` extension (MIT, © Denis Baumgärtner).
