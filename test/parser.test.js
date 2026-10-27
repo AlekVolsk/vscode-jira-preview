@@ -128,6 +128,20 @@ test('two attachments on one line both render', () => {
     assert.doesNotMatch(html, /<sup>/);
 });
 
+test('an attachment name keeps its paired brackets and its underscores', () => {
+    const html = render('ФТ: [^ФТ_Маркер_ЭЦН_ред1 [0od1gH].pdf] тут');
+    assert.match(html, /📎&nbsp;ФТ_Маркер_ЭЦН_ред1 \[0od1gH\]\.pdf<\/a> тут/);
+    assert.doesNotMatch(html, /<i>/);
+});
+
+test('an attachment with an unpaired bracket still ends at the first closing one', () => {
+    assert.match(render('[^а [б.pdf] тут'), /📎&nbsp;а \[б\.pdf<\/a> тут/);
+});
+
+test('a link alias keeps its paired brackets', () => {
+    assert.match(render('см. [отчёт [v2]|http://x/a] тут'), /см\. <a href='http:\/\/x\/a'>отчёт \[v2\]<\/a> тут/);
+});
+
 test('superscript still renders outside monospace', () => {
     assert.match(render('площадь 5 м^2^ всего'), /м<sup>2<\/sup> всего/);
 });

@@ -101,6 +101,11 @@ if (vsctm !== null) {
         assert.ok(hasScope(await scopesOf('файл [^ФТТ.xlsx] тут', 'ФТТ.xlsx'), 'markup.underline.link.attachment'));
     });
 
+    test('an attachment name with paired brackets is scoped as a whole', async () => {
+        const source = 'файл [^ФТ_ред1 [0od1gH].pdf] тут';
+        assert.ok(hasScope(await scopesOf(source, '.pdf'), 'markup.underline.link.attachment'));
+    });
+
     test('an image name is scoped as a link', async () => {
         assert.ok(hasScope(await scopesOf('!image-01.png|thumbnail!', 'image-01.png'), 'markup.underline.link.image'));
     });

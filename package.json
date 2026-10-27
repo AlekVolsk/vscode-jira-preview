@@ -2,7 +2,7 @@
     "name": "jira-preview",
     "displayName": "Jira Markup Preview",
     "description": "Preview and format Jira wiki markup (.jira) locally, with images and attachments. No Jira access required.",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "publisher": "AlekVolsk",
     "author": "AlekVolsk",
     "license": "BSD-3-Clause",
@@ -31,7 +31,9 @@
         "Programming Languages"
     ],
     "main": "./out/extension.js",
-    "activationEvents": [],
+    "activationEvents": [
+        "onLanguage:jira"
+    ],
     "scripts": {
         "test": "node --test test/*.test.js",
         "build": "npx --yes @vscode/vsce package -o jira-preview.vsix",

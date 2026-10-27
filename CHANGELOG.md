@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.2 — 2026-10-27
+
+- Regression in 1.1.1 fixed: the extension activates when a `.jira` file is opened again, so the formatter is available without opening the preview first.
+- A link or an attachment whose name holds paired square brackets (`[^ФТ_ред1 [0od1gH].pdf]`) is no longer cut at the first `]` in the preview, the formatter and the editor highlighting. An attachment name is shown as is, without italic or other inline markup.
+
 ## 1.1.1 — 2026-10-26
 
 - License changed from MIT to BSD 3-Clause.

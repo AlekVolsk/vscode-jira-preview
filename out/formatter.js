@@ -104,7 +104,7 @@ const LIST_RE = /^([*#-]+)[ \t\u00a0]+(.*)$/;
 const HR_RE = /^-{4,}$/;
 const BQ_RE = /^bq\.[ \t\u00a0]*(.*)$/;
 const FENCE_RE = /^\{(code|noformat|panel|quote|tip|info|note|warning)(?::[^}]*)?\}$/;
-const PROTECT_RE = /\{\{[\s\S]*?\}\}|\{(code|noformat)(?::[^}]*)?\}[\s\S]*?\{\1\}|\[[^\]]*\]|![^\s!][^!]*!|\{[a-zA-Z]+(?::[^}]*)?\}/g;
+const PROTECT_RE = /\{\{[\s\S]*?\}\}|\{(code|noformat)(?::[^}]*)?\}[\s\S]*?\{\1\}|\[(?:[^[\]]|\[[^[\]]*\])*\]|\[[^\]]*\]|![^\s!][^!]*!|\{[a-zA-Z]+(?::[^}]*)?\}/g;
 const WORD_RE = /[\p{L}\p{N}_]/u;
 
 const VERBATIM_MACROS = new Set(['code', 'noformat']);

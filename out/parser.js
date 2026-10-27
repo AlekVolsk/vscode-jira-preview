@@ -53,15 +53,15 @@ function escapeHtml(text) {
 
 /**
  * Inline markup is applied to text only: HTML tags built earlier in the pass carry
- * `_` and `-` inside hrefs, filenames and titles, and `<code>` holds text that is
- * quoted verbatim.
+ * `_` and `-` inside hrefs, filenames and titles, while `<code>` and an attachment
+ * name hold text that is quoted verbatim.
  *
  * @param {string} text
  * @param {(text: string) => string} replacer
  * @returns {string}
  */
 function replaceOutsideHtml(text, replacer) {
-    const re = /<code>[\s\S]*?<\/code>|<[^>]*>/g;
+    const re = /<code>[\s\S]*?<\/code>|<a class="attachment"[^>]*>[\s\S]*?<\/a>|<[^>]*>/g;
     let out = '';
     let last = 0;
     let match;
@@ -290,7 +290,7 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 .replace(/\{color\}/g, '</span>')
                 .replace(/\\\\/gi, '<br>'));
 
-            const attach_re = /\[\^([^\]]+)\]/g;
+            const attach_re = /\[\^((?:[^[\]]|\[[^[\]]*\])+|[^\]]+)\]/g;
             tag = replaceOutsideHtml(tag, (text) => text.replace(attach_re, function (m0, fname) {
                 const name = fname.trim();
                 const abs = path.isAbsolute(name)
@@ -300,7 +300,7 @@ function parseMarkup(sourceUri, sourceText, webview) {
                 return `<a class="attachment" href="command:jiraPreview.openAttachment?${arg}" title="${escapeHtml(abs)}">📎&nbsp;${escapeHtml(name)}</a>`;
             }));
 
-            const re_href = /\[([^||\]]*)\|?([^[||]*)?\]/g;
+            const re_href = /\[((?:[^|[\]]|\[[^[\]|]*\]|\[)*)\|?([^[||]*)?\]/g;
             tag = replaceOutsideHtml(tag, (text) => text.replace(re_href, function (m0, m1, m2) {
                 if (m1 !== undefined && (m1.startsWith(' ') || m1.endsWith('\\'))) {
                     return m0.replace(/\\/g, '').replace(/\|/g, '&vert;');
